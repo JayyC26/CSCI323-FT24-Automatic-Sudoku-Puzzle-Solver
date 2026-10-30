@@ -58,13 +58,155 @@ What the paper found (useful for our analysis):
     ACS wins on the hardest large instances (25x25 with 40-50% of cells given),
     and without BVE its success rate on hard puzzles drops sharply.
 
-Useful helpers: common.board.PEERS, common.board.UNITS, common.board.candidates.
-ACS is stochastic: use the `seed` option for repeatable runs. Report the number
-of iterations as "steps" (or ant constructions; say which in the report).
+ACS is stochastic: use the `seed` option for repeatable runs.
+"steps" = colony iterations (each iteration = `ants` full constructions).
 """
 
 from __future__ import annotations
 
+import random
+import time
 
-def solve(grid: list[int], seed: int | None = None, **options) -> dict:
-    raise NotImplementedError("ACO solver not implemented yet")
+from common.board import CELLS, PEERS, UNITS, is_solved
+
+ALL = (1 << 9) - 1                      # bitmask 1..9: bit (d-1) means digit d is possible
+BIT = [1 << d for d in range(9)]
+
+
+def _single(m: int) -> bool:
+    return m != 0 and m & (m - 1) == 0
+
+
+def _digit(m: int) -> int:
+    return m.bit_length()               # single-bit mask -> digit 1..9
+
+
+def _propagate(masks: list[int], queue: list[int]) -> None:
+    """Constraint propagation, Section III-A. Works in place on the value sets.
+
+    Rule 1: a fixed cell's value is removed from all its peers.
+    Rule 2: if a digit fits only one cell of a unit, it is fixed there.
+    Cells whose value set becomes empty are failures; they stay empty.
+    """
+    while True:
+        while queue:
+            i = queue.pop()
+            b = masks[i]
+            for p in PEERS[i]:
+                m = masks[p]
+                if m & b:
+                    m &= ~b
+                    masks[p] = m
+                    if _single(m):
+                        queue.append(p)
+        for unit in UNITS:
+            seen1 = seen2 = 0
+            for c in unit:
+                m = masks[c]
+                seen2 |= seen1 & m
+                seen1 |= m
+            once = seen1 & ~seen2
+            while once:
+                b = once & -once
+                once ^= b
+                for c in unit:
+                    if masks[c] & b:
+                        if masks[c] != b:
+                            masks[c] = b
+                            queue.append(c)
+                        break
+        if not queue:
+            return
+
+
+def _fixed(masks: list[int]) -> int:
+    return sum(1 for m in masks if _single(m))
+
+
+def _to_grid(masks: list[int]) -> list[int]:
+    return [_digit(m) if _single(m) else 0 for m in masks]
+
+
+def solve(grid: list[int], seed: int | None = None, ants: int = 10, q0: float = 0.9,
+          rho: float = 0.9, xi: float = 0.1, bve: float = 0.005,
+          time_limit: float = 20.0, max_iters: int | None = None, **options) -> dict:
+    """Ant Colony System for Sudoku (Lloyd & Amos 2019, Algorithm 1).
+
+    Defaults are the paper's parameters. Stops when solved, after time_limit
+    seconds, or after max_iters iterations. "steps" = iterations of the colony.
+    """
+    rng = random.Random(seed)
+    c = CELLS
+    tau0 = 1.0 / c
+
+    # read puzzle, propagate constraints for every given clue
+    base = [BIT[v - 1] if v else ALL for v in grid]
+    _propagate(base, [i for i, v in enumerate(grid) if v])
+
+    tau = [[tau0] * 9 for _ in range(c)]
+    best_masks = list(base)
+    best_f = _fixed(base)
+    delta_best = 0.0
+    iters = 0
+    start = time.perf_counter()
+
+    while best_f < c:
+        if max_iters is not None and iters >= max_iters:
+            break
+        if time.perf_counter() - start > time_limit:
+            break
+        iters += 1
+
+        # each ant gets its own copy of the puzzle and a random start cell
+        boards = [list(base) for _ in range(ants)]
+        pos = [rng.randrange(c) for _ in range(ants)]
+
+        for _ in range(c):
+            for a in range(ants):
+                masks = boards[a]
+                i = pos[a]
+                m = masks[i]
+                if m and not _single(m):
+                    t = tau[i]
+                    choices = [d for d in range(9) if m & BIT[d]]
+                    if rng.random() < q0:                      # greedy (Eq. 1)
+                        d = max(choices, key=t.__getitem__)
+                    else:                                       # roulette (Eq. 2)
+                        r = rng.random() * sum(t[k] for k in choices)
+                        for d in choices:
+                            r -= t[d]
+                            if r <= 0:
+                                break
+                    masks[i] = BIT[d]
+                    _propagate(masks, [i])
+                    t[d] = (1 - xi) * t[d] + xi * tau0          # local update (Eq. 3)
+                pos[a] = (i + 1) % c
+
+        # best ant of this iteration: most cells fixed (Eq. 4)
+        scores = [_fixed(b) for b in boards]
+        a_best = max(range(ants), key=scores.__getitem__)
+        f = scores[a_best]
+        if f == c:
+            best_masks, best_f = boards[a_best], f
+            break
+        delta = c / (c - f)                                     # Eq. 5
+        if delta > delta_best:
+            delta_best = delta
+            best_masks, best_f = boards[a_best], f
+
+        # global update on the best solution's values only (Eq. 6)
+        for i, m in enumerate(best_masks):
+            if _single(m):
+                d = _digit(m) - 1
+                tau[i][d] = (1 - rho) * tau[i][d] + rho * delta_best
+
+        delta_best *= (1 - bve)                                 # Best Value Evaporation (Eq. 7)
+
+    solution = _to_grid(best_masks)
+    return {
+        "solution": solution,
+        "solved": is_solved(solution),
+        "steps": iters,
+        "iterations": iters,
+        "cells_fixed": best_f,
+    }
