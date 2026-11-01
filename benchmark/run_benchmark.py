@@ -6,6 +6,7 @@ From the repo root:
     python -m benchmark.run_benchmark --solvers backtracking   # just one
     python -m benchmark.run_benchmark --puzzles data/demo_puzzles.csv
     python -m benchmark.run_benchmark --runs 5                 # repeat stochastic solvers
+    python -m benchmark.run_benchmark --solvers aco --max-iters 2   # cap ACO at 2 iterations
 
 Output: results/results.csv with columns
     solver, run, seed, id, level, difficulty, clues, solved, correct, time_s, steps, ...
@@ -53,7 +54,10 @@ def main() -> None:
     ap.add_argument("--seed", type=int, default=323)
     ap.add_argument("--limit", type=int, default=None, help="only use the first N puzzles (quick tests)")
     ap.add_argument("--out", type=Path, default=ROOT / "results" / "results.csv")
+    ap.add_argument("--time-limit", type=float, default=None, help="seconds per puzzle (passed to the solver)")
+    ap.add_argument("--max-iters", type=int, default=None, help="iteration cap for iterative solvers like ACO")
     args = ap.parse_args()
+    options = {k: v for k, v in (("time_limit", args.time_limit), ("max_iters", args.max_iters)) if v is not None}
 
     if not args.puzzles.exists():
         raise SystemExit(f"Can't find {args.puzzles}. Run data/sample_puzzles.py first, "
@@ -75,7 +79,7 @@ def main() -> None:
                     grid = parse(p["puzzle"])
                     seed = args.seed + run * 100_000 + k
                     start = time.perf_counter()
-                    out = solve(list(grid), seed=seed)
+                    out = solve(list(grid), seed=seed, **options)
                     elapsed = time.perf_counter() - start
 
                     answer = out.get("solution", [])
@@ -88,6 +92,8 @@ def main() -> None:
                         "time_s": round(elapsed, 6),
                         "steps": out.get("steps", ""),
                     }
+                    if args.max_iters is not None:
+                        row["max_iters"] = args.max_iters
                     # keep any extra stats a solver reports (e.g. iterations, restarts)
                     for key, val in out.items():
                         if key not in ("solution", "solved", "steps"):

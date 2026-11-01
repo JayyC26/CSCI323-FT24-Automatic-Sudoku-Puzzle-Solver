@@ -3,6 +3,7 @@
 From the repo root, after running the benchmark:
 
     python -m benchmark.plots
+    python -m benchmark.plots --results results/results.csv results/results_very_hard.csv
 
 Writes to results/:
     summary.csv           solve rate, mean/median time, mean steps per solver and level
@@ -23,17 +24,18 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 ROOT = Path(__file__).resolve().parent.parent
-LEVEL_ORDER = ["easy", "medium", "hard"]
+LEVEL_ORDER = ["easy", "medium", "hard", "very_hard"]
 COLORS = {"backtracking": "#2a6f97", "aco": "#e0a526", "proposed": "#2e9e6b"}
 
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--results", type=Path, default=ROOT / "results" / "results.csv")
+    ap.add_argument("--results", type=Path, nargs="+", default=[ROOT / "results" / "results.csv"],
+                    help="one or more results files (e.g. main set + very hard set)")
     ap.add_argument("--outdir", type=Path, default=ROOT / "results")
     args = ap.parse_args()
 
-    df = pd.read_csv(args.results)
+    df = pd.concat([pd.read_csv(p) for p in args.results], ignore_index=True)
     df["correct"] = df["correct"].astype(str).str.lower() == "true"
     levels = [lvl for lvl in LEVEL_ORDER if lvl in set(df["level"].dropna())] or sorted(df["level"].dropna().unique())
     solvers = list(dict.fromkeys(df["solver"]))

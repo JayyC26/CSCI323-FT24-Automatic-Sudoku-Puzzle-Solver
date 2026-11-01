@@ -30,6 +30,18 @@ benchmark/plots.py        summary table + charts for slides/report
 tests/                    sanity tests (python -m pytest)
 ```
 
+## Extra experiments (marginal cases)
+
+Very hard puzzles (Kaggle rating 6 or above, about 1,300 of the 3M):
+
+    python data/sample_puzzles.py --min-difficulty 6 --level-name very_hard --output data/puzzles_very_hard.csv
+    python -m benchmark.run_benchmark --solvers aco --puzzles data/puzzles_very_hard.csv --runs 3 --out results/results_very_hard.csv
+    python -m benchmark.plots --results results/results.csv results/results_very_hard.csv
+
+Iteration cap (how often ACO solves within N iterations):
+
+    python -m benchmark.run_benchmark --solvers aco --puzzles data/puzzles_very_hard.csv --max-iters 1 --out results/cap_1.csv
+
 ## The solver interface (everyone must follow this)
 
 ```python

@@ -14,6 +14,13 @@ Options:
     --per-level 150          puzzles per level (default 150)
     --cuts 1.0 3.0           difficulty cut points: easy < 1.0 <= medium < 3.0 <= hard
     --seed 323               random seed, so the sample is reproducible
+
+Extra "very hard" set (kept in its own file so the main sample doesn't change):
+
+    python data/sample_puzzles.py --min-difficulty 6 --level-name very_hard \
+        --output data/puzzles_very_hard.csv
+
+Only about 1,300 of the 3M puzzles are rated 6 or above (the hardest is 8.5).
 """
 
 from __future__ import annotations
@@ -40,6 +47,24 @@ def label(difficulty: pd.Series, cuts: tuple[float, float]) -> pd.Series:
     ).astype(str)
 
 
+def sample_band(args) -> None:
+    """Sample --per-level puzzles rated >= --min-difficulty into one extra level."""
+    parts = []
+    for chunk in pd.read_csv(args.input, usecols=REQUIRED, chunksize=args.chunksize):
+        parts.append(chunk[chunk["difficulty"] >= args.min_difficulty])
+    band = pd.concat(parts, ignore_index=True)
+    n = min(len(band), args.per_level)
+    if n < args.per_level:
+        print(f"warning: only {len(band)} puzzles rated >= {args.min_difficulty}, using all of them")
+    sample = band.sample(n=n, random_state=args.seed).copy()
+    sample["level"] = args.level_name
+    args.output.parent.mkdir(parents=True, exist_ok=True)
+    sample[["id", "puzzle", "solution", "clues", "difficulty", "level"]].to_csv(args.output, index=False)
+    print(f"Puzzles rated >= {args.min_difficulty} in the full dataset: {len(band)}")
+    print(sample["difficulty"].describe()[["count", "min", "mean", "max"]])
+    print(f"\nWrote {len(sample)} puzzles to {args.output}")
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--input", type=Path, default=DEFAULT_IN)
@@ -48,6 +73,9 @@ def main() -> None:
     ap.add_argument("--cuts", type=float, nargs=2, default=(1.0, 3.0))
     ap.add_argument("--seed", type=int, default=323)
     ap.add_argument("--chunksize", type=int, default=500_000)
+    ap.add_argument("--min-difficulty", type=float, default=None,
+                    help="only sample puzzles rated at least this (one extra level, e.g. very hard)")
+    ap.add_argument("--level-name", default="very_hard", help="level label used with --min-difficulty")
     args = ap.parse_args()
 
     if not args.input.exists():
@@ -60,6 +88,10 @@ def main() -> None:
     missing = [c for c in REQUIRED if c not in header]
     if missing:
         raise SystemExit(f"Unexpected CSV format. Missing columns {missing}; found {header}")
+
+    if args.min_difficulty is not None:
+        sample_band(args)
+        return
 
     # Pass 1: take a generous random slice of each level from every chunk,
     # so we never hold all 3M rows in memory at once.
