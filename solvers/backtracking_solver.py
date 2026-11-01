@@ -92,4 +92,4 @@ def solve(puzzle: List[int] | List[List[int]], **kwargs) -> Dict[str, Any]:
         "backtracks": backtrack_count,
         "time_taken": elapsed_time,
         "algorithm": "Naive Recursive Backtracking"
-    }
+    } 
