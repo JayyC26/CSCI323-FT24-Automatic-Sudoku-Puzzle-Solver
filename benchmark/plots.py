@@ -55,8 +55,8 @@ def main() -> None:
     print(summary.to_string(index=False))
 
     def grouped_bars(metric: str, ylabel: str, filename: str, log: bool = False) -> None:
-        fig, ax = plt.subplots(figsize=(8, 4.5))
-        width = 0.8 / max(len(solvers), 1)
+        fig, ax = plt.subplots(figsize=(6, 3.4))
+        width = min(0.25, 0.8 / max(len(solvers), 1))
         for j, s in enumerate(solvers):
             sub = summary[summary["solver"] == s].set_index("level").reindex(levels)
             xs = [i + (j - (len(solvers) - 1) / 2) * width for i in range(len(levels))]
@@ -75,7 +75,7 @@ def main() -> None:
     grouped_bars("median_time_s", "Median solve time (s, log scale)", "time_by_level.png", log=True)
 
     if pd.to_numeric(df["difficulty"], errors="coerce").notna().any():
-        fig, ax = plt.subplots(figsize=(8, 4.5))
+        fig, ax = plt.subplots(figsize=(6, 3.4))
         for s in solvers:
             sub = df[df["solver"] == s]
             ax.scatter(pd.to_numeric(sub["difficulty"], errors="coerce"), sub["time_s"],
