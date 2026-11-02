@@ -28,7 +28,7 @@ data/demo_puzzles.csv     3 puzzles for quick tests
 benchmark/run_benchmark.py  runs solvers on the same puzzles -> results/<solver>/results.csv
 benchmark/convergence.py  ACO cells left / % solved per round -> results/aco/
 benchmark/plots.py        summary table + charts for slides/report
-results/                  one folder per method: aco/, backtracking/, image_csp/ + comparison/ (all methods side by side)
+results/                  one folder per method: aco/, backtracking/, image_csp/
 tests/                    sanity tests (python -m pytest)
 ```
 
