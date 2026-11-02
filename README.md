@@ -6,7 +6,7 @@ Sudoku as a constraint satisfaction problem (CSP), solved and compared with thre
 |---|--------|------|------|
 | 1 | Recursive backtracking | Established, systematic, complete | `solvers/backtracking_solver.py` |
 | 2 | Ant Colony Optimisation + constraint propagation | Research paper, stochastic, incomplete | `solvers/aco.py` |
-| 3 | Image detection + digit recognition, solved as a CSP | Research paper | `solvers/image_csp.py` (to be added) |
+| 3 | Image detection + digit recognition, solved as a CSP | Research paper | `solvers/image_csp.py`  |
 
 Method 2 is based on: Lloyd, H., & Amos, M. (2019). Solving Sudoku with ant colony optimization. *IEEE Transactions on Games, 12*(3), 302–311. https://doi.org/10.1109/TG.2019.2942773
 
