@@ -1,29 +1,43 @@
+import sys
 import os
-import time
-import cv2
-import numpy as np
-import tensorflow as tf
 
-from vision import extract_sudoku_grid, parse_grid_digits
+# Adjust path so we can import csp_solver if running from root or solvers/
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from csp_solver import SudokuCSP
-from display import display_solution
+
+def solve(grid: list[int], seed: int | None = None, **options) -> dict:
+    """
+    Mandatory solver interface required by benchmark/run_benchmark.py.
+    """
+    board_2d = [grid[i:i+9] for i in range(0, 81)]
+    solver = SudokuCSP(board_2d)
+    solved_board_2d = solver.solve()
+    
+    if solved_board_2d is None:
+        return {
+            "solution": list(grid),
+            "solved": False,
+            "steps": solver.revisions
+        }
+        
+    solution_1d = [val for row in solved_board_2d for val in row]
+    
+    return {
+        "solution": solution_1d,
+        "solved": True,
+        "steps": solver.revisions
+    }
 
 def create_sample_sudoku_image(filename="sample_sudoku.png"):
-    """Generates a clean test Sudoku image so you can test immediately."""
+    import cv2
+    import numpy as np
     board = [
-        [5, 3, 0, 0, 7, 0, 0, 0, 0],
-        [6, 0, 0, 1, 9, 5, 0, 0, 0],
-        [0, 9, 8, 0, 0, 0, 0, 6, 0],
-        [8, 0, 0, 0, 6, 0, 0, 0, 3],
-        [4, 0, 0, 8, 0, 3, 0, 0, 1],
-        [7, 0, 0, 0, 2, 0, 0, 0, 6],
-        [0, 6, 0, 0, 0, 0, 2, 8, 0],
-        [0, 0, 0, 4, 1, 9, 0, 0, 5],
-        [0, 0, 0, 0, 8, 0, 0, 7, 9]
+        [5, 3, 0, 0, 7, 0, 0, 0, 0], [6, 0, 0, 1, 9, 5, 0, 0, 0], [0, 9, 8, 0, 0, 0, 0, 6, 0],
+        [8, 0, 0, 0, 6, 0, 0, 0, 3], [4, 0, 0, 8, 0, 3, 0, 0, 1], [7, 0, 0, 0, 2, 0, 0, 0, 6],
+        [0, 6, 0, 0, 0, 0, 2, 8, 0], [0, 0, 0, 4, 1, 9, 0, 0, 5], [0, 0, 0, 0, 8, 0, 0, 7, 9]
     ]
     img = np.ones((500, 500, 3), dtype=np.uint8) * 255
-    margin = 25
-    cell = 450 // 9
+    margin, cell = 25, 450 // 9
 
     for i in range(10):
         thickness = 4 if i % 3 == 0 else 1
@@ -42,59 +56,56 @@ def create_sample_sudoku_image(filename="sample_sudoku.png"):
                 )
 
     cv2.imwrite(filename, img)
-    print(f"Created test puzzle image: {filename}")
 
-def print_board(board, title):
-    print(f"\n--- {title} ---")
-    for r in range(9):
-        if r % 3 == 0 and r != 0:
-            print("-" * 21)
-        row_str = " ".join(
-            str(board[r][c]) if board[r][c] != 0 else "." for c in range(9)
-        )
-        print(f"{row_str[:5]} | {row_str[6:11]} | {row_str[12:]}")
+if __name__ == "__main__":
+    print("1. Starting visual pipeline...", flush=True)
+    os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
+    os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
+    
+    import time
+    import cv2
+    print("2. Loading TensorFlow...", flush=True)
+    import tensorflow as tf
+    
+    from vision import extract_sudoku_grid, parse_grid_digits
+    from display import display_solution
 
-def main():
     image_path = "sample_sudoku.png"
     model_path = "digit_model.keras"
 
     if not os.path.exists(model_path):
-        raise FileNotFoundError("Run 'python train_model.py' first to create digit_model.keras.")
+        print("Error: Run 'python train_model.py' first.")
+        sys.exit(1)
 
     if not os.path.exists(image_path):
         create_sample_sudoku_image(image_path)
 
-    # 1. Module (a): Image Recognition
-    print("Loading CNN model and extracting grid...")
+    print("Extracting grid and recognizing digits...")
     model = tf.keras.models.load_model(model_path)
     warped_color, warped_thresh = extract_sudoku_grid(image_path)
-    initial_board = parse_grid_digits(warped_thresh, model)
-    print_board(initial_board, "Recognized Board from Image")
+    initial_board_2d = parse_grid_digits(warped_thresh, model)
+    
+    initial_grid_1d = [val for row in initial_board_2d for val in row]
 
-    # 2. Module (b): Solve with CSP + AC-3
-    print("\nSolving puzzle using CSP (AC-3 + MAC)...")
+    print("\nSolving using standard team interface...")
     start_time = time.perf_counter()
-    solver = SudokuCSP(initial_board)
-    solved_board = solver.solve()
+    
+    result = solve(initial_grid_1d)
+    
     elapsed_ms = (time.perf_counter() - start_time) * 1000
 
-    if solved_board is None:
-        print("No valid solution found. Check if OCR misclassified a digit.")
-        return
+    if not result["solved"]:
+        print("No valid solution found. OCR may have misclassified a digit.")
+        sys.exit(1)
 
-    print_board(solved_board, "Solved Sudoku Board")
     print(f"\n[Evaluation Metrics]")
     print(f"Solve Time:    {elapsed_ms:.2f} ms")
-    print(f"AC-3 Revisions: {solver.revisions}")
+    print(f"AC-3 Revisions:{result['steps']}")
 
-    # 3. Module (c): Display Solution
-    output_img = display_solution(warped_color, initial_board, solved_board, "solved.png")
+    solved_board_2d = [result["solution"][i:i+9] for i in range(0, 81)]
+    
+    output_img = display_solution(warped_color, initial_board_2d, solved_board_2d, "solved.png")
     print("Saved visual solution to solved.png")
-
     cv2.imshow("Solved Sudoku", output_img)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
-
-if __name__ == "__main__":
-    main()
-    
