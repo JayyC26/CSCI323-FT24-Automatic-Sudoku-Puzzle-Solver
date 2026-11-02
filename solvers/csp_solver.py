@@ -79,3 +79,4 @@ class SudokuCSP:
                 if result is not None:
                     return result
         return None
+        
