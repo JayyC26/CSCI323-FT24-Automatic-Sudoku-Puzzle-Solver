@@ -13,7 +13,7 @@ class SudokuCSP:
 
         self.neighbors = {v: set() for v in self.variables}
         self._build_constraints()
-        self.revisions = 0  # Metric for your report evaluation
+        self.revisions = 0
 
     def _build_constraints(self):
         for r, c in self.variables:
@@ -36,7 +36,7 @@ class SudokuCSP:
             xi, xj = queue.popleft()
             if self.revise(domains, xi, xj):
                 if len(domains[xi]) == 0:
-                    return False  # Domain wiped out: unsolvable state
+                    return False
                 for xk in self.neighbors[xi] - {xj}:
                     queue.append((xk, xi))
         return True
@@ -44,8 +44,6 @@ class SudokuCSP:
     def revise(self, domains, xi, xj):
         revised = False
         self.revisions += 1
-        # In a binary inequality constraint (xi != xj), a value x in D(xi)
-        # has no support in D(xj) ONLY if D(xj) is a singleton {x}.
         if len(domains[xj]) == 1:
             val_j = next(iter(domains[xj]))
             if val_j in domains[xi]:
@@ -54,10 +52,8 @@ class SudokuCSP:
         return revised
 
     def solve(self):
-        # Step 1: Initial AC-3 Constraint Propagation
         if not self.ac3(self.domains):
             return None
-        # Step 2: MAC Search if any domain still has >1 candidate
         result_domains = self._mac_search(self.domains)
         if result_domains is None:
             return None
@@ -67,7 +63,6 @@ class SudokuCSP:
         if all(len(domains[v]) == 1 for v in self.variables):
             return domains
 
-        # Minimum Remaining Values (MRV) heuristic to pick next unassigned cell
         unassigned = [v for v in self.variables if len(domains[v]) > 1]
         var = min(unassigned, key=lambda v: len(domains[v]))
 
@@ -79,4 +74,3 @@ class SudokuCSP:
                 if result is not None:
                     return result
         return None
-        
