@@ -30,19 +30,16 @@ def generate_printed_digits(samples_per_digit=400):
     return np.array(images), np.array(labels)
 
 def train_and_save_model(model_path="digit_model.keras"):
-    # Load MNIST and filter out 0s
     (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
     train_mask = y_train > 0
     test_mask = y_test > 0
     x_train, y_train = x_train[train_mask], y_train[train_mask]
     x_test, y_test = x_test[test_mask], y_test[test_mask]
 
-    # Add synthetic printed digits for high accuracy on printed grids
     syn_x, syn_y = generate_printed_digits()
     x_train = np.concatenate([x_train, syn_x], axis=0)
     y_train = np.concatenate([y_train, syn_y], axis=0)
 
-    # Normalize to [0, 1] and reshape to (28, 28, 1)
     x_train = np.expand_dims(x_train.astype("float32") / 255.0, -1)
     x_test = np.expand_dims(x_test.astype("float32") / 255.0, -1)
 
@@ -70,4 +67,3 @@ def train_and_save_model(model_path="digit_model.keras"):
 
 if __name__ == "__main__":
     train_and_save_model()
-    
