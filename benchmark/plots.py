@@ -1,11 +1,11 @@
-"""Turn results/results.csv into summary tables and charts for the slides and report.
+"""Turn a results.csv into summary tables and charts for the slides and report.
 
 From the repo root, after running the benchmark:
 
     python -m benchmark.plots
-    python -m benchmark.plots --results results/results.csv results/results_very_hard.csv
+    python -m benchmark.plots --results results/aco/results.csv results/aco/results_very_hard.csv
 
-Writes to results/:
+Writes next to the first results file (e.g. results/aco/):
     summary.csv           solve rate, mean/median time, mean steps per solver and level
     solve_rate.png        % of puzzles solved correctly, per level
     time_by_level.png     median solve time per level (log scale)
@@ -30,10 +30,11 @@ COLORS = {"backtracking": "#2a6f97", "aco": "#e0a526", "proposed": "#2e9e6b"}
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--results", type=Path, nargs="+", default=[ROOT / "results" / "results.csv"],
+    ap.add_argument("--results", type=Path, nargs="+", default=[ROOT / "results" / "comparison" / "results.csv"],
                     help="one or more results files (e.g. main set + very hard set)")
-    ap.add_argument("--outdir", type=Path, default=ROOT / "results")
+    ap.add_argument("--outdir", type=Path, default=None, help="default: the folder of the first results file")
     args = ap.parse_args()
+    args.outdir = args.outdir or args.results[0].parent
 
     df = pd.concat([pd.read_csv(p) for p in args.results], ignore_index=True)
     df["correct"] = df["correct"].astype(str).str.lower() == "true"

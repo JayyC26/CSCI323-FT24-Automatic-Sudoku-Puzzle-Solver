@@ -54,7 +54,7 @@ def main() -> None:
     ap.add_argument("--max-iters", type=int, default=1000)
     ap.add_argument("--time-limit", type=float, default=20.0)
     ap.add_argument("--seed", type=int, default=323)
-    ap.add_argument("--outdir", type=Path, default=ROOT / "results")
+    ap.add_argument("--outdir", type=Path, default=ROOT / "results" / "aco")
     args = ap.parse_args()
 
     puzzles = pd.concat([pd.read_csv(p) for p in args.puzzles if p.exists()], ignore_index=True)

@@ -25,8 +25,10 @@ common/board.py           shared helpers: parse, peers, candidates, conflict cou
 solvers/                  one file per method, all with the same solve() interface
 data/sample_puzzles.py    builds data/puzzles.csv from the Kaggle dataset
 data/demo_puzzles.csv     3 puzzles for quick tests
-benchmark/run_benchmark.py  runs every solver on the same puzzles -> results/results.csv
+benchmark/run_benchmark.py  runs solvers on the same puzzles -> results/<solver>/results.csv
+benchmark/convergence.py  ACO cells left / % solved per round -> results/aco/
 benchmark/plots.py        summary table + charts for slides/report
+results/                  one folder per method (aco, backtracking, proposed) + comparison/ for all methods together
 tests/                    sanity tests (python -m pytest)
 ```
 
@@ -35,12 +37,12 @@ tests/                    sanity tests (python -m pytest)
 Very hard puzzles (Kaggle rating 6 or above, about 1,300 of the 3M):
 
     python data/sample_puzzles.py --min-difficulty 6 --level-name very_hard --output data/puzzles_very_hard.csv
-    python -m benchmark.run_benchmark --solvers aco --puzzles data/puzzles_very_hard.csv --runs 3 --out results/results_very_hard.csv
-    python -m benchmark.plots --results results/results.csv results/results_very_hard.csv
+    python -m benchmark.run_benchmark --solvers aco --puzzles data/puzzles_very_hard.csv --runs 3 --out results/aco/results_very_hard.csv
+    python -m benchmark.plots --results results/aco/results.csv results/aco/results_very_hard.csv
 
 Iteration cap (how often ACO solves within N iterations):
 
-    python -m benchmark.run_benchmark --solvers aco --puzzles data/puzzles_very_hard.csv --max-iters 1 --out results/cap_1.csv
+    python -m benchmark.run_benchmark --solvers aco --puzzles data/puzzles_very_hard.csv --max-iters 1 --out results/aco/cap_1.csv
 
 ## The solver interface (everyone must follow this)
 
@@ -75,8 +77,10 @@ Commit the resulting `data/puzzles.csv` so everyone tests on exactly the same pu
 ```bash
 python -m pytest                                              # sanity tests
 python -m benchmark.run_benchmark --puzzles data/demo_puzzles.csv   # quick check
-python -m benchmark.run_benchmark --runs 5                    # full run, 5 repeats for stochastic solvers
-python -m benchmark.plots                                     # summary.csv + charts in results/
+python -m benchmark.run_benchmark --runs 5                    # all solvers -> results/comparison/results.csv
+python -m benchmark.run_benchmark --solvers aco --runs 3      # one solver -> results/aco/results.csv
+python -m benchmark.plots                                     # summary.csv + charts in results/comparison/
+python -m benchmark.plots --results results/aco/results.csv   # one method only -> results/aco/
 ```
 
 Solvers that still raise `NotImplementedError` are skipped automatically.
