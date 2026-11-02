@@ -65,3 +65,4 @@ def parse_grid_digits(warped_thresh, model):
             board[r, c] = int(np.argmax(probs[1:]) + 1)
 
     return board
+    
