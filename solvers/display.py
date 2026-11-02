@@ -17,4 +17,3 @@ def display_solution(warped_color, initial_board, solved_board, output_path="sol
 
     cv2.imwrite(output_path, output_img)
     return output_img
-    
