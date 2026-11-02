@@ -54,13 +54,13 @@ def main() -> None:
     ap.add_argument("--seed", type=int, default=323)
     ap.add_argument("--limit", type=int, default=None, help="only use the first N puzzles (quick tests)")
     ap.add_argument("--out", type=Path, default=None,
-                    help="default: results/<solver>/results.csv, or results/comparison/results.csv for several solvers")
+                    help="default: results/<solver>/results.csv, or results/results.csv for several solvers")
     ap.add_argument("--time-limit", type=float, default=None, help="seconds per puzzle (passed to the solver)")
     ap.add_argument("--max-iters", type=int, default=None, help="iteration cap for iterative solvers like ACO")
     args = ap.parse_args()
     if args.out is None:
-        folder = args.solvers[0] if len(args.solvers) == 1 else "comparison"
-        args.out = ROOT / "results" / folder / "results.csv"
+        args.out = (ROOT / "results" / args.solvers[0] / "results.csv" if len(args.solvers) == 1
+                    else ROOT / "results" / "results.csv")
     options = {k: v for k, v in (("time_limit", args.time_limit), ("max_iters", args.max_iters)) if v is not None}
 
     if not args.puzzles.exists():

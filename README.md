@@ -4,9 +4,9 @@ Sudoku as a constraint satisfaction problem (CSP), solved and compared with thre
 
 | # | Method | Type | File |
 |---|--------|------|------|
-| 1 | Backtracking + forward checking + MRV | Established, systematic, complete | `solvers/backtracking.py` (to be added) |
+| 1 | Recursive backtracking | Established, systematic, complete | `solvers/backtracking_solver.py` |
 | 2 | Ant Colony Optimisation + constraint propagation | Research paper, stochastic, incomplete | `solvers/aco.py` |
-| 3 | Our proposed method (TBD) | Own design | `solvers/proposed.py` (to be added) |
+| 3 | Image detection + digit recognition, solved as a CSP | Research paper | `solvers/image_csp.py` (to be added) |
 
 Method 2 is based on: Lloyd, H., & Amos, M. (2019). Solving Sudoku with ant colony optimization. *IEEE Transactions on Games, 12*(3), 302–311. https://doi.org/10.1109/TG.2019.2942773
 
@@ -28,7 +28,7 @@ data/demo_puzzles.csv     3 puzzles for quick tests
 benchmark/run_benchmark.py  runs solvers on the same puzzles -> results/<solver>/results.csv
 benchmark/convergence.py  ACO cells left / % solved per round -> results/aco/
 benchmark/plots.py        summary table + charts for slides/report
-results/                  one folder per method (aco, backtracking, proposed) + comparison/ for all methods together
+results/                  one folder per method: aco/, backtracking/, image_csp/
 tests/                    sanity tests (python -m pytest)
 ```
 
@@ -77,15 +77,14 @@ Commit the resulting `data/puzzles.csv` so everyone tests on exactly the same pu
 ```bash
 python -m pytest                                              # sanity tests
 python -m benchmark.run_benchmark --puzzles data/demo_puzzles.csv   # quick check
-python -m benchmark.run_benchmark --runs 5                    # all solvers -> results/comparison/results.csv
+python -m benchmark.run_benchmark --runs 5                    # all solvers -> results/results.csv
 python -m benchmark.run_benchmark --solvers aco --runs 3      # one solver -> results/aco/results.csv
-python -m benchmark.plots                                     # summary.csv + charts in results/comparison/
-python -m benchmark.plots --results results/aco/results.csv   # one method only -> results/aco/
+python -m benchmark.plots --results results/aco/results.csv   # summary.csv + charts next to the results file
 ```
 
 Solvers that still raise `NotImplementedError` are skipped automatically.
 
 ## Workflow
 
-- One branch per pair, e.g. `aco`, `proposed`. Open a pull request into `main` when your solver passes `python -m pytest`.
+- One branch per pair, e.g. `aco`, `image_csp`. Open a pull request into `main` when your solver passes `python -m pytest`.
 - Only change `common/` and `benchmark/` after telling the group, since every solver depends on them.

@@ -25,12 +25,12 @@ import pandas as pd
 
 ROOT = Path(__file__).resolve().parent.parent
 LEVEL_ORDER = ["easy", "medium", "hard", "very_hard"]
-COLORS = {"backtracking": "#2a6f97", "aco": "#e0a526", "proposed": "#2e9e6b"}
+COLORS = {"backtracking": "#2a6f97", "aco": "#e0a526", "image_csp": "#2e9e6b"}
 
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--results", type=Path, nargs="+", default=[ROOT / "results" / "comparison" / "results.csv"],
+    ap.add_argument("--results", type=Path, nargs="+", default=[ROOT / "results" / "aco" / "results.csv"],
                     help="one or more results files (e.g. main set + very hard set)")
     ap.add_argument("--outdir", type=Path, default=None, help="default: the folder of the first results file")
     args = ap.parse_args()

@@ -21,5 +21,5 @@ from solvers import aco
 SOLVERS = {
     # "backtracking": backtracking.solve,  # Method 1: established (to be added)
     "aco": aco.solve,                    # Method 2: research paper (Lloyd & Amos)
-    # "proposed": proposed.solve,          # Method 3: our own method (to be added)
+    # "image_csp": image_csp.solve,        # Method 3: image detection + CSP (to be added)
 }
