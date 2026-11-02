@@ -4,11 +4,11 @@ import numpy as np
 def order_points(pts):
     rect = np.zeros((4, 2), dtype="float32")
     s = pts.sum(axis=1)
-    rect[0] = pts[np.argmin(s)]      # Top-left
-    rect[2] = pts[np.argmax(s)]      # Bottom-right
+    rect[0] = pts[np.argmin(s)]
+    rect[2] = pts[np.argmax(s)]
     diff = np.diff(pts, axis=1)
-    rect[1] = pts[np.argmin(diff)]   # Top-right
-    rect[3] = pts[np.argmax(diff)]   # Bottom-left
+    rect[1] = pts[np.argmin(diff)]
+    rect[3] = pts[np.argmax(diff)]
     return rect
 
 def extract_sudoku_grid(image_path):
@@ -48,10 +48,8 @@ def parse_grid_digits(warped_thresh, model):
     for r in range(9):
         for c in range(9):
             cell = warped_thresh[r*cell_size:(r+1)*cell_size, c*cell_size:(c+1)*cell_size]
-            # Crop 6px border to remove grid lines
             cropped = cell[6:-6, 6:-6]
             
-            # Pixel count feature from the paper: skip empty cells
             if cv2.countNonZero(cropped) < 40:
                 board[r, c] = 0
                 continue
@@ -61,7 +59,10 @@ def parse_grid_digits(warped_thresh, model):
             reshaped = np.expand_dims(normalized, axis=(0, -1))
 
             probs = model.predict(reshaped, verbose=0)[0]
-            # Predict 1-9 (exclude class 0 if using a 10-class model)
+            board[r, c] = int(np.argmax(probs[1:]) + 1)
+
+    return board
+            # Predict 1-9
             board[r, c] = int(np.argmax(probs[1:]) + 1)
 
     return board
