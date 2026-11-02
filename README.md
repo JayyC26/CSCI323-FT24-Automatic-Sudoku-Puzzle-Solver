@@ -86,5 +86,4 @@ Solvers that still raise `NotImplementedError` are skipped automatically.
 
 ## Workflow
 
-- One branch per pair, e.g. `aco`, `image_csp`. Open a pull request into `main` when your solver passes `python -m pytest`.
 - Only change `common/` and `benchmark/` after telling the group, since every solver depends on them.

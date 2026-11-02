@@ -43,31 +43,6 @@ def parse(puzzle: str) -> list[int]:
     return [0 if ch in ".0" else int(ch) for ch in puzzle]
 
 
-def to_str(grid: list[int]) -> str:
-    """Turn a grid back into an 81-character string, '.' for blanks."""
-    return "".join(str(v) if v else "." for v in grid)
-
-
-def pretty(grid: list[int]) -> str:
-    """Human-readable 9x9 board for debugging and the README."""
-    lines = []
-    for r in range(N):
-        if r in (3, 6):
-            lines.append("------+-------+------")
-        row = grid[r * N:(r + 1) * N]
-        cells = [str(v) if v else "." for v in row]
-        lines.append(" ".join(cells[0:3]) + " | " + " ".join(cells[3:6]) + " | " + " ".join(cells[6:9]))
-    return "\n".join(lines)
-
-
-def candidates(grid: list[int], i: int) -> set[int]:
-    """Digits that can legally go in empty cell i given the current grid."""
-    if grid[i]:
-        return {grid[i]}
-    used = {grid[p] for p in PEERS[i]}
-    return {d for d in DIGITS if d not in used}
-
-
 def count_conflicts(grid: list[int]) -> int:
     """Number of duplicate digits across all rows, columns and boxes.
 
