@@ -129,11 +129,14 @@ def _to_grid(masks: list[int]) -> list[int]:
 
 def solve(grid: list[int], seed: int | None = None, ants: int = 10, q0: float = 0.9,
           rho: float = 0.9, xi: float = 0.1, bve: float = 0.005,
-          time_limit: float = 20.0, max_iters: int | None = None, **options) -> dict:
+          time_limit: float = 20.0, max_iters: int | None = None,
+          track_history: bool = False, **options) -> dict:
     """Ant Colony System for Sudoku (Lloyd & Amos 2019, Algorithm 1).
 
     Defaults are the paper's parameters. Stops when solved, after time_limit
     seconds, or after max_iters iterations. "steps" = iterations of the colony.
+    With track_history=True, also returns "history": cells left unsolved by the
+    best solution so far, after propagation (round 0) and after every round.
     """
     rng = random.Random(seed)
     c = CELLS
@@ -148,6 +151,7 @@ def solve(grid: list[int], seed: int | None = None, ants: int = 10, q0: float = 
     best_f = _fixed(base)
     delta_best = 0.0
     iters = 0
+    history = [c - best_f]
     start = time.perf_counter()
 
     while best_f < c:
@@ -188,6 +192,7 @@ def solve(grid: list[int], seed: int | None = None, ants: int = 10, q0: float = 
         f = scores[a_best]
         if f == c:
             best_masks, best_f = boards[a_best], f
+            history.append(0)
             break
         delta = c / (c - f)                                     # Eq. 5
         if delta > delta_best:
@@ -201,12 +206,16 @@ def solve(grid: list[int], seed: int | None = None, ants: int = 10, q0: float = 
                 tau[i][d] = (1 - rho) * tau[i][d] + rho * delta_best
 
         delta_best *= (1 - bve)                                 # Best Value Evaporation (Eq. 7)
+        history.append(c - best_f)
 
     solution = _to_grid(best_masks)
-    return {
+    out = {
         "solution": solution,
         "solved": is_solved(solution),
         "steps": iters,
         "iterations": iters,
         "cells_fixed": best_f,
     }
+    if track_history:
+        out["history"] = history
+    return out
